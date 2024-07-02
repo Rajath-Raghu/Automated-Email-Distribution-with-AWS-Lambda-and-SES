@@ -1,0 +1,43 @@
+import json
+import boto3
+import csv
+
+def lambda_handler(event, context):
+    # TODO implement
+    ses = boto3.client('ses')
+    s3 = boto3.client('s3')
+    
+    # Extract bucket and key from the S3 event
+    bucket = "BUCKET_NAME"
+    key = "CSV_FILE"
+    
+    # Download CSV file from S3
+    response = s3.get_object(Bucket=bucket, Key=key)
+    csv_data = response['Body'].read().decode('utf-8').splitlines()
+    
+    reader = csv.reader(csv_data)
+    header = next(reader, None)
+    
+    for row in reader:
+        email_id = row[0]
+        message = row[1]
+
+        print(f"Attempting to send email to: {email_id}")
+
+        try:
+            ses.send_email(
+                Source=' ',
+                Destination={'ToAddresses': [email_id]},
+                Message={
+                    'Subject': {'Data': 'Your Subject'},
+                    'Body': {'Text': {'Data': message}}
+                }
+            )
+            print(f"Successfully sent email to: {email_id}")
+        except Exception as e:
+            print(f"Failed to send email to {email_id}: {e}")
+
+    return {
+        'statusCode': 200,
+        'body': json.dumps('Emails processed successfully')
+    }
